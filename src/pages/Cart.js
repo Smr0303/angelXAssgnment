@@ -1,3 +1,4 @@
+import React, { useContext, useRef } from "react";
 import AddToBasketBtn from "components/AddToBasketBtn";
 import GetIcon from "components/GetIcon";
 import Card from "components/Card";
@@ -6,17 +7,58 @@ import clsx from "clsx";
 import emptyCardImg from "images/empty_cart.svg";
 import { BasketContext } from "context/BasketContext";
 import useMakeRequest from "hooks/useMakeRequest";
-import { useContext } from "react";
 import BasketItem from "components/BasketItem";
 import { useParams, Link } from "react-router-dom";
-import { useRef } from "react";
-// import styles from "styles/BasketItem.module.scss";
+import detectEthereumProvider from "@metamask/detect-provider";
 import styles from "styles/BasketSidebar.module.scss";
 
 const Cart = () => {
-
-const { basketIsOpen, setBasketIsOpen, basketItems, setBasketItems, basketTotal: _basketTotal, setBasketTotal } = useContext(BasketContext);
+  const {
+    basketIsOpen,
+    setBasketIsOpen,
+    basketItems,
+    setBasketItems,
+    basketTotal: _basketTotal,
+    setBasketTotal,
+  } = useContext(BasketContext);
   const container = useRef();
+
+  const handlePayment = async () => {
+    const provider = await detectEthereumProvider();
+
+    if (provider) {
+      const accounts = await provider.request({
+        method: "eth_requestAccounts",
+      });
+      const account = accounts[0];
+
+      try {
+        const transactionParameters = {
+          to: "0xe3Fd565F444B6e67a41384E2B8741385C0236DBE", // Replace with the merchant's wallet address
+          from: account,
+          value: ((parseFloat(_basketTotal) * 1e18) / 10000000).toString(16), // Convert total to Wei (1 Ether = 1e18 Wei)
+          chainId: "0x11155111", // Ethereum Main Network ID
+        };
+
+        // Log the amount being transferred
+        console.log("Transferring amount in Ether:", _basketTotal.toFixed(2));
+
+        const txHash = await provider.request({
+          method: "eth_sendTransaction",
+          params: [transactionParameters],
+        });
+
+        console.log("Transaction sent with hash: ", txHash);
+        // Clear the basket after successful transaction
+        setBasketItems([]);
+        setBasketTotal(0);
+      } catch (error) {
+        console.error("Payment failed: ", error);
+      }
+    } else {
+      console.error("Please install MetaMask!");
+    }
+  };
 
   return (
     <div>
@@ -26,7 +68,6 @@ const { basketIsOpen, setBasketIsOpen, basketItems, setBasketItems, basketTotal:
             <Title txt="your basket" size={20} transform="uppercase" />
             {<h2>Your basket has got {basketItems.length} items</h2>}
           </div>
-          
         </div>
         {basketItems.length > 0 ? (
           <>
@@ -45,14 +86,17 @@ const { basketIsOpen, setBasketIsOpen, basketItems, setBasketItems, basketTotal:
                 <div className={styles.price}>
                   <span>{_basketTotal.toFixed(2)}</span>
                 </div>
-                
               </div>
 
               <div className={styles.centered}>
-          <button type="button" onClick={() => {setBasketItems([]); setBasketTotal(0)}}className={`${styles.confirmBtn} ${styles.large}`}>
-            Confirm the basket
-          </button>
-        </div>
+                <button
+                  type="button"
+                  onClick={handlePayment}
+                  className={`${styles.confirmBtn} ${styles.large}`}
+                >
+                  Confirm the basket
+                </button>
+              </div>
             </div>
           </>
         ) : (

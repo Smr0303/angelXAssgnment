@@ -8,6 +8,7 @@
     "@testing-library/user-event": "^13.5.0",
     "clsx": "^1.1.1",
     "react": "^17.0.0",
+    "@metamask/detect-provider": "^2.0.0",
     "react-dom": "^17.0.0",
     "react-icons": "^4.3.1",
     "react-router-dom": "^5.1",
